@@ -89,24 +89,35 @@ def depthFirstSearch(problem: SearchProblem):
 
     from util import Stack
 
-    # Each node: (state, path to node)
-    start_state = problem.getStartState()
-    fringe = Stack()
+    # Cria uma pilha para armazenar nós a explorar.
+    # Cada item empilhado é uma tupla: (estado_atual, caminho_de_acoes_para_chegar_ate_este_estado)
+    stack = Stack()
+
+    # Conjunto para registrar estados já visitados (graph-search)
     visited = set()
 
-    fringe.push((start_state, []))
+    # Empilha o estado inicial com um caminho vazio (nenhuma ação realizada ainda)
+    stack.push((problem.getStartState(), []))
 
-    while not fringe.isEmpty():
-        state, actions = fringe.pop()
+    # Loop até que não haja mais nós para expandir
+    while not stack.isEmpty():
+        # Desempilha o próximo nó a ser explorado
+        state, actions = stack.pop()
 
+        # Se o estado desempilhado for objetivo, retornamos o caminho de ações que levou até ele
         if problem.isGoalState(state):
             return actions
 
+        # Se ainda não visitamos este estado, expandimos seus sucessores
         if state not in visited:
+            # Marca o estado como visitado para evitar ciclos
             visited.add(state)
+            # Itera sobre os sucessores do estado atual
             for successor, action, _ in problem.getSuccessors(state):
-                fringe.push((successor, actions + [action]))
+                # Para DFS, empilhamos cada sucessor com o caminho atualizado (concatena a ação)
+                stack.push((successor, actions + [action]))
 
+    # Se não encontrado, retorna lista vazia (sem solução)
     return []
     ###util.raiseNotDefined()
 
@@ -114,21 +125,33 @@ def breadthFirstSearch(problem: SearchProblem):
     """Search the shallowest nodes in the search tree first."""
     from util import Queue
     start_state = problem.getStartState()
+    # Cria uma fila para armazenar nós a explorar.
+    # Cada item enfileirado é uma tupla: (estado_atual, caminho_de_acoes_para_chegar_ate_este_estado)
     queue = Queue()
+
+    # Conjunto para registrar estados já visitados (graph-search)
     visited = set()
+
+    # Enfileira o estado inicial com um caminho vazio
     queue.push((start_state, []))
 
+    # Loop até que a fila esteja vazia
     while not queue.isEmpty():
+        # Desenfileira o próximo nó a ser explorado
         state, actions = queue.pop()
 
+        # Se o estado desenfileirado for objetivo, retornamos o caminho de ações
         if problem.isGoalState(state):
             return actions
 
+        # Se ainda não visitamos este estado, expandimos seus sucessores
         if state not in visited:
+            # Marca o estado como visitado
             visited.add(state)
+            # Para cada sucessor do estado atual
             for successor, action, _ in problem.getSuccessors(state):
+                # Enfileira o sucessor com o caminho atualizado (concatena a ação)
                 queue.push((successor, actions + [action]))
-
     return []
     ###util.raiseNotDefined()
 
@@ -136,20 +159,33 @@ def uniformCostSearch(problem: SearchProblem):
     """Search the node of least total cost first."""
     from util import PriorityQueue
     start_state = problem.getStartState()
+    # Cria uma fila de prioridade onde cada entrada é ((estado, caminho, custo), prioridade)
     pq = PriorityQueue()
+
+    # Conjunto para registrar estados visitados (graph-search)
     visited = set()
+
+    # Insere o estado inicial com custo 0; prioridade igual ao custo atual
     pq.push((start_state, [], 0), 0)
 
+    # Loop enquanto houver nós na fila de prioridade
     while not pq.isEmpty():
+        # Remove o item com menor prioridade (menor custo acumulado)
         state, actions, cost = pq.pop()
 
+        # Se o estado é objetivo, retornamos o caminho para ele
         if problem.isGoalState(state):
             return actions
 
+        # Se ainda não visitamos este estado, expandimos
         if state not in visited:
+            # Marca como visitado
             visited.add(state)
+            # Para cada sucessor do estado atual
             for successor, action, stepCost in problem.getSuccessors(state):
+                # Calcula o novo custo acumulado até o sucessor
                 newCost = cost + stepCost
+                # Insere/atualiza o sucessor na fila de prioridade com prioridade = novo custo
                 pq.push((successor, actions + [action], newCost), newCost)
 
     return []
@@ -164,22 +200,36 @@ def nullHeuristic(state, problem=None):
 
 def aStarSearch(problem: SearchProblem, heuristic=nullHeuristic):
     """Search the node that has the lowest combined cost and heuristic first."""
+    # Se nenhuma heurística for passada, usa heurística nula (0)
     from util import PriorityQueue
     if heuristic is None:
         heuristic = lambda state, problem=None: 0
-    start_space = problem.getStartState()
-    pq = PriorityQueue()
-    visited = set()
-    pq.push((problem.getStartState(), [], 0), heuristic(start_space, problem))
 
+    # Cria a fila de prioridade para nós a explorar
+    # Cada elemento: (estado, caminho, custo_g)
+    pq = PriorityQueue()
+
+    # Conjunto de estados visitados (graph-search)
+    visited = set()
+
+    # Calcula prioridade inicial: custo_g (0) + heurística do estado inicial
+    start = problem.getStartState()
+    startPriority = heuristic(start, problem)
+    pq.push((start, [], 0), startPriority)
+
+    # Loop até esgotar a fila
     while not pq.isEmpty():
+        # Pop do menor f = g + h
         state, actions, cost = pq.pop()
 
+        # Se alcançamos o objetivo, retornamos o caminho
         if problem.isGoalState(state):
             return actions
 
+        # Se ainda não visitado, expandimos
         if state not in visited:
             visited.add(state)
+            # Para cada sucessor, calcula novo g e prioridade f = g + h
             for successor, action, stepCost in problem.getSuccessors(state):
                 newCost = cost + stepCost
                 priority = newCost + heuristic(successor, problem)

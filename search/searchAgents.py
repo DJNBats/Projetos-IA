@@ -302,8 +302,10 @@ class CornersProblem(search.SearchProblem):
         """
         Returns whether this search state is a goal state of the problem.
         """
-        # Replace the line below with your problem's goal condition
+        # Verifica se o estado atual é objetivo (todos os 4 cantos visitados)
+        # Desempacota o estado em posição atual e cantos já visitados
         _, visitedCorners = state
+        # Condição de objetivo: já visitamos 4 cantos
         return len(visitedCorners) == 4
         ###util.raiseNotDefined()
 
@@ -318,28 +320,40 @@ class CornersProblem(search.SearchProblem):
             is the incremental cost of expanding to that successor
         """
 
+        # Lista que será retornada contendo sucessores válidos
         successors = []
+        # Desempacota a posição atual e os cantos visitados
+        currentPosition, visitedCorners = state
+
+        # Testa cada direção possível
         for action in [Directions.NORTH, Directions.SOUTH, Directions.EAST, Directions.WEST]:
-            # Add a successor state to the successor list if the action is legal
-            # Here's a code snippet for figuring out whether a new position hits a wall:
-            #   x,y = currentPosition
-            #   dx, dy = Actions.directionToVector(action)
-            #   nextx, nexty = int(x + dx), int(y + dy)
-            #   hitsWall = self.walls[nextx][nexty]
+            # Obtém coordenadas x,y da posição atual
+            x, y = currentPosition
+            # Converte a ação numa mudança vetorial (dx, dy)
+            dx, dy = Actions.directionToVector(action)
+            # Calcula a próxima posição inteira após mover-se na direção escolhida
+            nextx, nexty = int(x + dx), int(y + dy)
 
-            currentPosition, visitedCorners = state
-            for action in [Directions.NORTH, Directions.SOUTH, Directions.EAST, Directions.WEST]:
-                x, y = currentPosition
-                dx, dy = Actions.directionToVector(action)
-                nextx, nexty = int(x + dx), int(y + dy)
-                if not self.walls[nextx][nexty]:
-                    nextPosition = (nextx, nexty)
-                    nextVisitedCorners = visitedCorners
-                    if nextPosition in self.corners and nextPosition not in visitedCorners:
-                        nextVisitedCorners = tuple(sorted(visitedCorners + (nextPosition,)))
-                    successors.append(((nextPosition, nextVisitedCorners), action, 1))
+            # Se não houver parede na posição destino, é um sucessor válido
+            if not self.walls[nextx][nexty]:
+                # Define a próxima posição como tupla
+                nextState = (nextx, nexty)
 
-        self._expanded += 1 # DO NOT CHANGE
+                # Por padrão, os cantos visitados permanecem os mesmos
+                nextVisitedCorners = visitedCorners
+
+                # Se a nova posição é um dos cantos e ainda não foi visitada,
+                # cria-se uma nova tupla de cantos visitados incluindo este canto.
+                if nextState in self.corners and nextState not in visitedCorners:
+                    # Concatena o novo canto à tupla existente criando uma nova tupla
+                    nextVisitedCorners = visitedCorners + (nextState,)
+
+                # Adiciona o sucessor à lista com custo de passo = 1
+                successors.append(((nextState, nextVisitedCorners), action, 1))
+
+        # Incrementa contador de expansões (para estatísticas)
+        self._expanded += 1  # DO NOT CHANGE
+        # Retorna a lista de sucessores
         return successors
 
     def getCostOfActions(self, actions):
@@ -352,7 +366,9 @@ class CornersProblem(search.SearchProblem):
         for action in actions:
             dx, dy = Actions.directionToVector(action)
             x, y = int(x + dx), int(y + dy)
+            # Se bate numa parede, retorna custo inválido
             if self.walls[x][y]: return 999999
+        # Caso válido, custo é o número de ações (cada ação custa 1)
         return len(actions)
 
 
@@ -372,24 +388,43 @@ def cornersHeuristic(state: Any, problem: CornersProblem):
     corners = problem.corners # These are the corner coordinates
     walls = problem.walls # These are the walls of the maze, as a Grid (game.py)
 
+    # Desempacota estado: posição atual e cantos já visitados
     currentPosition, visitedCorners = state
+    # Pega a lista de cantos do problema
     corners = problem.corners
+
+    # Cria lista de cantos ainda não visitados
     unvisited = [corner for corner in corners if corner not in visitedCorners]
+
+    # Heurística acumulada (inicialmente zero)
     heuristic = 0
+    # Variável que representa a posição atual durante a estimativa
     position = currentPosition
+
+    # Heurística gulosa: soma distâncias Manhattan para percorrer todos os cantos
+    # na ordem em que o próximo canto escolhido é sempre o mais próximo (aproximação)
     while unvisited:
+        # Calcula distâncias Manhattan da posição corrente a cada canto não visitado
         distances = [(util.manhattanDistance(position, corner), corner) for corner in unvisited]
+        # Seleciona o canto mais próximo e sua distância
         dist, nextCorner = min(distances)
+        # Acumula a distância ao valor heurístico
         heuristic += dist
+        # Move a "posição" estimada para este canto (simula visita)
         position = nextCorner
+        # Remove o canto visitado da lista de não visitados
         unvisited.remove(nextCorner)
+
+    # Retorna o valor heurístico calculado
     return heuristic
     ###return 0 # Default to trivial solution
 
 class AStarCornersAgent(SearchAgent):
     "A SearchAgent for FoodSearchProblem using A* and your foodHeuristic"
     def __init__(self):
+        # Define a função de busca (A*) com a heurística cornersHeuristic
         self.searchFunction = lambda prob: search.aStarSearch(prob, cornersHeuristic)
+        # Define o tipo de problema que este agente resolve
         self.searchType = CornersProblem
 
 class FoodSearchProblem:
@@ -417,15 +452,25 @@ class FoodSearchProblem:
     def getSuccessors(self, state):
         "Returns successor states, the actions they require, and a cost of 1."
         successors = []
+        # Incrementa contador de expansões
         self._expanded += 1 # DO NOT CHANGE
+        # Para cada direção possível
         for direction in [Directions.NORTH, Directions.SOUTH, Directions.EAST, Directions.WEST]:
+            # Estado atual: posição do Pacman
             x,y = state[0]
+            # Vetor de movimento para a direção considerada
             dx, dy = Actions.directionToVector(direction)
+            # Próxima coordenada se mover nesta direção
             nextx, nexty = int(x + dx), int(y + dy)
+            # Se não for parede, cria novo estado com comida possivelmente removida
             if not self.walls[nextx][nexty]:
+                # Copia o grid de comida do estado atual
                 nextFood = state[1].copy()
+                # Marca a posição destino como sem comida (False)
                 nextFood[nextx][nexty] = False
+                # Anexa o sucessor: ( (nova_pos, novo_foodGrid), ação, custo )
                 successors.append( ( ((nextx, nexty), nextFood), direction, 1) )
+        # Retorna a lista de sucessores gerados
         return successors
 
     def getCostOfActions(self, actions):
@@ -476,8 +521,28 @@ def foodHeuristic(state: Tuple[Tuple, List[List]], problem: FoodSearchProblem):
     Subsequent calls to this heuristic can access
     problem.heuristicInfo['wallCount']
     """
+    # Desempacota o estado em posição e grid de comida
     position, foodGrid = state
-    "*** YOUR CODE HERE ***"
+    # Converte o grid de comida numa lista de coordenadas com comida
+    foodList = foodGrid.asList()
+
+    # Se não houver comida, retorna 0 (estado objetivo)
+    if not foodList:
+        return 0
+
+    # Calcula a maior mazeDistance da posição atual até qualquer comida restante.
+    # Isso exige rodar uma busca real (BFS) internamente para cada food, é custoso,
+    # mas admissível e melhora drasticamente a heurística em muitos casos.
+    maxDistance = 0
+    for food in foodList:
+        # mazeDistance calcula a distância "real" no labirinto (considerando paredes)
+        dist = mazeDistance(position, food, problem.startingGameState)
+        # Atualiza a maior distância encontrada
+        if dist > maxDistance:
+            maxDistance = dist
+
+    # Retorna a estimativa (maior distância até qualquer comida)
+    return maxDistance
     return 0
 
 class ClosestDotSearchAgent(SearchAgent):
@@ -508,8 +573,11 @@ class ClosestDotSearchAgent(SearchAgent):
         walls = gameState.getWalls()
         problem = AnyFoodSearchProblem(gameState)
 
-        "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        # Use the provided AnyFoodSearchProblem which considers reaching any food as the goal.
+        problem = AnyFoodSearchProblem(gameState)
+        # Use breadth-first search to guarantee the shortest path to the closest food.
+        return search.breadthFirstSearch(problem)
+        ###util.raiseNotDefined()
 
 class AnyFoodSearchProblem(PositionSearchProblem):
     """
