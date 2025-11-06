@@ -543,7 +543,7 @@ def foodHeuristic(state: Tuple[Tuple, List[List]], problem: FoodSearchProblem):
 
     # Retorna a estimativa (maior distância até qualquer comida)
     return maxDistance
-    return 0
+
 
 class ClosestDotSearchAgent(SearchAgent):
     "Search for all food using a sequence of searches"
@@ -575,7 +575,7 @@ class ClosestDotSearchAgent(SearchAgent):
 
         # Use the provided AnyFoodSearchProblem which considers reaching any food as the goal.
         problem = AnyFoodSearchProblem(gameState)
-        # Use breadth-first search to guarantee the shortest path to the closest food.
+        # Resolve o problema com BFS, que garante o caminho mais curto até o ponto de comida mais próximo
         return search.breadthFirstSearch(problem)
         ###util.raiseNotDefined()
 
@@ -611,6 +611,7 @@ class AnyFoodSearchProblem(PositionSearchProblem):
         complete the problem definition.
         """
         x, y = state
+        # Retorna True se no grid de comida há True na posição (x,y)
         return self.food[x][y]
         ###util.raiseNotDefined()
 
